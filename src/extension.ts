@@ -72,16 +72,16 @@ function getWorktreePath(gitPath: string) {
     }
 }
 
-function calculateURL() {
+function calculateURL(knownFile?: string) {
     
     const editor = vscode.window.activeTextEditor;
-    if (!editor) {
+    if (!editor && !knownFile) {
         throw new Error('No selected editor');
     }
-    const {document, selection} = editor;
-    const {fileName} = document;
+    const {document, selection} = editor ?? {};
+    const fileName = knownFile ?? document!.fileName;
 
-    let gitDir = findGitFolder(fileName);
+    let gitDir = findGitFolder(knownFile ?? fileName);
 
     const baseDir = path.join(gitDir, '..')
 
@@ -119,19 +119,23 @@ function calculateURL() {
         throw new Error(`The remote "${remote}" does not look like to be hosted at GitHub`);
     }
 
-    const start = selection.start.line + 1;
-    const end = selection.end.line + 1;
-
     const relativePathURL = relativePath.split(path.sep).join('/');
     const absolutePathURL = `${repoURL}/blob/${sha}/${relativePathURL}`;
 
-    if (start === 1 && end === document.lineCount) {
-        return absolutePathURL;
-    } else if (start === end) {
-        return `${absolutePathURL}#L${start}`;
+    if(selection && !knownFile) {
+        const start = selection.start.line + 1;
+        const end = selection.end.line + 1;
+    
+        if (start === 1 && end === document!.lineCount) {
+            return absolutePathURL;
+        } else if (start === end) {
+            return `${absolutePathURL}#L${start}`;
+        }
+    
+        return `${absolutePathURL}#L${start}-L${end}`;
     }
 
-    return `${absolutePathURL}#L${start}-L${end}`;
+    return absolutePathURL;
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -163,6 +167,19 @@ export function activate(context: vscode.ExtensionContext) {
             clipboardy.writeSync(markdown);
             vscode.window.showInformationMessage('GitHub URL and code copied to the clipboard!');
         } catch (err) {
+            if (err instanceof Error) {
+                vscode.window.showErrorMessage(err.message);
+            }
+            throw err;
+        }
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand('githublinker.copyFile', (...args) => {
+        try {
+            const finalURL = calculateURL(args[0].fsPath);
+            clipboardy.writeSync(finalURL);
+            vscode.window.showInformationMessage('GitHub URL copied to the clipboard!');
+        } catch(err) {
             if (err instanceof Error) {
                 vscode.window.showErrorMessage(err.message);
             }

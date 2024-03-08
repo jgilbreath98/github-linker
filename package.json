@@ -31,6 +31,11 @@
                 "when": "editorTextFocus || editorHasSelection",
                 "command": "githublinker.copyMarkdown",
                 "title": "GitHub linker: Copy link to selection and code as markdown"
+            },
+            {
+                "when": "isFileSystemResource && resourceSet",
+                "command": "githublinker.copyFile",
+                "title": "GitHub linker: Copy link to file"
             }
         ],
         "menus": {
@@ -44,6 +49,13 @@
                     "when": "editorTextFocus || editorHasSelection",
                     "command": "githublinker.copyMarkdown",
                     "group": "9_cutcopypaste"
+                }
+            ],
+            "explorer/context": [
+                {
+                    "when": "isFileSystemResource && resourceSet",
+                    "command": "githublinker.copyFile",
+                    "group": "6_copypath"
                 }
             ]
         },
