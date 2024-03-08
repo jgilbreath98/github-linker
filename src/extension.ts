@@ -12,12 +12,24 @@ function getGitHubRepoURL(url: string) {
     if (url.endsWith('.git')) {
         url = url.substring(0, url.length - '.git'.length);
     }
-    if (url.startsWith('https://github.com/')) {
+    let host: string;
+    try {
+        var result = /^[^@]+@([^:]+)/m.exec(url);
+        if(result != null) {
+            host = result[1];
+        } else {
+            host = new URL(url).host;
+        }
+        host = host.toLowerCase();
+    } catch {
+        return null;
+    }
+
+    const hosts = vscode.workspace.getConfiguration("githublinker").get<string[]>("allowableHosts");
+    if(hosts?.some(h => h.toLowerCase() === host)) {
         return url;
     }
-    if (url.startsWith('git@github.com:')) {
-        return 'https://github.com/' + url.substring('git@github.com:'.length);
-    }
+
     return null;
 }
 
@@ -61,6 +73,7 @@ function getWorktreePath(gitPath: string) {
 }
 
 function calculateURL() {
+    
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         throw new Error('No selected editor');
